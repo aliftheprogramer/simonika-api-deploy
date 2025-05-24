@@ -1,3 +1,4 @@
+// src/pages/api/mqtt/status.js
 import runMiddleware, { cors } from '@/lib/cors';
 import { initializeMqttClient } from '@/lib/mqttClient';
 
