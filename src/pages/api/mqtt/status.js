@@ -1,21 +1,16 @@
+import runMiddleware, { cors } from '@/lib/cors';
 import { initializeMqttClient } from '@/lib/mqttClient';
 
-export default function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+export default async function handler(req, res) {
+  await runMiddleware(req, res, cors);
 
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
-  const mqttClient = initializeMqttClient();
   const {
     MQTT_BROKER_HOST,
     MQTT_BROKER_PORT,
     MQTT_SUBSCRIBE_TOPIC = 'devices/wokwi_esp8266/data',
   } = process.env;
+
+  const mqttClient = initializeMqttClient();
 
   res.status(200).json({
     connected: mqttClient.connected,
