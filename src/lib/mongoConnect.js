@@ -1,17 +1,17 @@
 // src/lib/mongodb.js
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
-  throw new Error("Harap setel MONGODB_URI di .env.local");
+  throw new Error('Harap setel MONGODB_URI di .env.local');
 }
 
 let isConnected = false;
 
-const connectionToDatabase = async () => {
+const mongoConnect = async () => {
   if (isConnected) {
-    console.log("Menggunakan koneksi MongoDB yang sudah ada.");
+    console.log('Menggunakan koneksi MongoDB yang sudah ada.');
     return;
   }
 
@@ -22,11 +22,11 @@ const connectionToDatabase = async () => {
     });
 
     isConnected = db.connections[0].readyState === 1;
-    console.log("MongoDB Connected");
+    console.log('MongoDB Connected');
   } catch (error) {
-    console.error("MongoDB Connection Error:", error);
+    console.error('MongoDB Connection Error:', error);
     process.exit(1);
   }
 };
 
-export default connectionToDatabase;
+export default mongoConnect;

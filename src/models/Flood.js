@@ -1,5 +1,5 @@
-// src/models/Flood.js
-import mongoose from "mongoose";
+// @/models/Flood.js
+import mongoose from 'mongoose';
 
 const FloodSchema = new mongoose.Schema(
   {
@@ -27,14 +27,14 @@ const FloodSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["normal", "alert", "critical"],
-      default: "normal",
+      enum: ['normal', 'alert', 'critical'],
+      default: 'normal',
     },
   },
   {
-    collection: "flood_data",
+    collection: 'flood_data',
     timestamps: true,
   }
 );
 
-export default mongoose.models.Flood || mongoose.model("Flood", FloodSchema);
+export default mongoose.models.Flood || mongoose.model('Flood', FloodSchema);
