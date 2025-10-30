@@ -8,7 +8,6 @@ export default async function handler(req, res) {
   await runMiddleware(req, res, cors);
 
   if (req.method === 'POST') {
-    // Accept device data (optionally could require a device key; for now require auth)
     const user = await authenticate(req, res);
     if (!user) return;
 

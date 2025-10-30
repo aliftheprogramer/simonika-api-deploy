@@ -2,10 +2,9 @@ import mqtt from 'mqtt';
 
 let mqttClient = null;
 let receivedMessages = [];
+// current subscription topic (can be changed at runtime via API)
+let currentSubscribeTopic = process.env.MQTT_SUBSCRIBE_TOPIC || 'devices/+/data';
 
-export function getReceivedMessages() {
-  return receivedMessages;
-}
 
 export function initializeMqttClient() {
   if (mqttClient) return mqttClient;
@@ -15,7 +14,6 @@ export function initializeMqttClient() {
     MQTT_BROKER_PORT,
     MQTT_USERNAME,
     MQTT_PASSWORD,
-    MQTT_SUBSCRIBE_TOPIC = 'devices/wokwi_esp8266/data',
   } = process.env;
 
   const options = {
@@ -47,9 +45,9 @@ export function initializeMqttClient() {
 
   mqttClient.on('connect', () => {
     console.log('[MQTT] Connected to broker');
-    mqttClient.subscribe(MQTT_SUBSCRIBE_TOPIC, (err) => {
+    mqttClient.subscribe(currentSubscribeTopic, (err) => {
       if (!err) {
-        console.log(`[MQTT] Subscribed to ${MQTT_SUBSCRIBE_TOPIC}`);
+        console.log(`[MQTT] Subscribed to ${currentSubscribeTopic}`);
       }
     });
   });
@@ -75,4 +73,71 @@ export function initializeMqttClient() {
   mqttClient.on('offline', () => console.log('[MQTT] Offline'));
 
   return mqttClient;
+}
+
+// Get the current subscription topic
+export function getCurrentSubscribeTopic() {
+  return currentSubscribeTopic;
+}
+
+// Change subscription topic at runtime. Returns a promise that resolves when subscribe completes.
+export function setSubscribeTopic(newTopic) {
+  if (!newTopic || typeof newTopic !== 'string') {
+    throw new Error('newTopic must be a non-empty string');
+  }
+
+  const oldTopic = currentSubscribeTopic;
+  currentSubscribeTopic = newTopic;
+
+  if (!mqttClient) {
+    // mqtt client not initialized yet; when initialized it will subscribe to currentSubscribeTopic
+    return Promise.resolve({ oldTopic, newTopic });
+  }
+
+  return new Promise((resolve, reject) => {
+    // unsubscribe from old topic first (best-effort)
+    mqttClient.unsubscribe(oldTopic, (unsubErr) => {
+      if (unsubErr) console.warn('[MQTT] Unsubscribe error for', oldTopic, unsubErr.message || unsubErr);
+
+      // subscribe to new topic
+      mqttClient.subscribe(newTopic, (subErr) => {
+        if (subErr) {
+          console.error('[MQTT] Failed to subscribe to', newTopic, subErr.message || subErr);
+          return reject(subErr);
+        }
+        console.log('[MQTT] Subscribed to', newTopic);
+        return resolve({ oldTopic, newTopic });
+      });
+    });
+  });
+}
+
+// Return recent messages, optionally filtered by deviceId (from topic or payload) and limited
+export function getReceivedMessages(filter = {}) {
+  const { deviceId, limit } = filter || {};
+  let msgs = receivedMessages.slice();
+
+  if (deviceId) {
+    msgs = msgs.filter((m) => {
+      // check topic pattern: devices/{deviceId}/data
+      const tmatch = m.topic && m.topic.match(/^devices\/([^/]+)\/data$/);
+      if (tmatch && tmatch[1] === deviceId) return true;
+
+      // fallback: try to parse payload and match deviceId field inside payload
+      try {
+        const obj = JSON.parse(m.payload);
+        if (obj && (obj.deviceId === deviceId || obj.id === deviceId)) return true;
+      } catch (e) {
+        // not JSON or no deviceId in payload
+      }
+
+      return false;
+    });
+  }
+
+  if (limit && Number.isInteger(limit) && limit > 0) {
+    return msgs.slice(-limit);
+  }
+
+  return msgs;
 }
