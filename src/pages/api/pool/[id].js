@@ -12,6 +12,11 @@ export default async function handler(req, res) {
 
   await mongoConnect();
 
+  // CORS preflight handling (OPTIONS)
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
   if (req.method === 'GET') {
     try {
       const pool = await Pool.findById(id);
