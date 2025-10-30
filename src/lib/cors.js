@@ -21,6 +21,22 @@ const cors = Cors({
 });
 
 function runMiddleware(req, res, fn) {
+  // Ensure CORS headers are present on every response (extra safety for browsers)
+  const origin = req.headers.origin || '*';
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Length, X-Kuma-Revision');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+  // Handle preflight immediately
+  if (req.method === 'OPTIONS') {
+    // short-circuit with empty body — browser expects the headers above
+    res.statusCode = 204;
+    res.end();
+    return Promise.resolve();
+  }
+
   return new Promise((resolve, reject) => {
     fn(req, res, (result) => {
       return result instanceof Error ? reject(result) : resolve(result);
