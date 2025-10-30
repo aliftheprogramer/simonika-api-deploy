@@ -1,11 +1,16 @@
 // src/pages/api/mqtt/publish.js
 import runMiddleware, { cors } from '@/lib/cors';
 import { initializeMqttClient } from '@/lib/mqttClient';
+import { authenticate } from '@/lib/auth';
 
 export default async function handler(req, res) {
-  await runMiddleware(req, res, cors); // Tambahkan ini
+  await runMiddleware(req, res, cors);
 
   if (req.method !== 'POST') return res.status(405).end('Method Not Allowed');
+
+  // require auth
+  const user = await authenticate(req, res);
+  if (!user) return;
 
   const { topic, message } = req.body;
   if (!topic || message == null)
