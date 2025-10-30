@@ -26,8 +26,18 @@ export default async function handler(req, res) {
     const user = new User({ name, username, password });
     await user.save();
 
+    // Ensure JWT secret is available
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not set in environment');
+      return res.status(500).json({ message: 'Server misconfiguration: JWT_SECRET is not set' });
+    }
+
     // Buat token JWT
-    const token = jwt.sign({ id: user._id, username: user.username }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '1d' });
+    const token = jwt.sign(
+      { id: user._id, username: user.username },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '1d' }
+    );
 
     return res.status(201).json({
       message: 'Registrasi berhasil',

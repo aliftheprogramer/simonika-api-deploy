@@ -28,7 +28,22 @@ export function initializeMqttClient() {
     clean: true,
   };
 
-  mqttClient = mqtt.connect(`mqtts://${MQTT_BROKER_HOST}`, options);
+  // Normalize broker host and allow full URL formats
+  let brokerHost = MQTT_BROKER_HOST || '';
+
+  // If user provided a URL with a scheme (http://, mqtt://, mqtts://, ws://, etc), use it as-is
+  const hasScheme = /^(wss?:|mqtts?:)\/\//i.test(brokerHost);
+  if (!hasScheme) {
+    // strip any accidental protocol (e.g. http://) and trailing slashes
+    brokerHost = brokerHost.replace(/^.*?:\/\//, '').replace(/\/$/, '');
+  }
+
+  const url = hasScheme
+    ? brokerHost
+    : `${options.protocol}://${brokerHost}${MQTT_BROKER_PORT ? `:${MQTT_BROKER_PORT}` : ''}`;
+
+  console.log(`[MQTT] Connecting to broker URL: ${url}`);
+  mqttClient = mqtt.connect(url, options);
 
   mqttClient.on('connect', () => {
     console.log('[MQTT] Connected to broker');

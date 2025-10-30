@@ -9,6 +9,13 @@ export async function authenticate(req, res) {
     return null;
   }
 
+  // ensure JWT secret present
+  if (!process.env.JWT_SECRET) {
+    console.error('JWT_SECRET is not set in environment');
+    res.status(500).json({ message: 'Server misconfiguration: JWT_SECRET is not set' });
+    return null;
+  }
+
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
