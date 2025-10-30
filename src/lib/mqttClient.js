@@ -3,7 +3,7 @@ import mqtt from 'mqtt';
 let mqttClient = null;
 let receivedMessages = [];
 // current subscription topic (can be changed at runtime via API)
-// Temporarily hardcode subscribe topic to a single device for testing
+// let currentSubscribeTopic = process.env.MQTT_SUBSCRIBE_TOPIC || 'devices/+/data';
 let currentSubscribeTopic = 'devices/00e5b570/data';
 
 
