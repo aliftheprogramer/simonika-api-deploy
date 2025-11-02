@@ -1,4 +1,5 @@
 // src/pages/api/device/provision.js
+import runMiddleware, { cors } from '@/lib/cors';
 import mongoConnect from '@/lib/mongoConnect';
 import Device from '@/models/Device';
 import Pool from '@/models/Pool';
@@ -7,6 +8,8 @@ import crypto from 'crypto';
 // Device provisioning endpoint (device-initiated)
 // Body: { serial?: string, factoryCode: string, requestedPoolId?: string, deviceId?: string }
 export default async function handler(req, res) {
+  await runMiddleware(req, res, cors);
+  if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed' });
 
   try {

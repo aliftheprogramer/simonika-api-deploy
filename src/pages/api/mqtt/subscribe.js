@@ -4,6 +4,7 @@ import { initializeMqttClient, setSubscribeTopic, getCurrentSubscribeTopic } fro
 
 export default async function handler(req, res) {
   await runMiddleware(req, res, cors);
+  if (req.method === 'OPTIONS') return res.status(204).end();
 
   if (req.method === 'GET') {
     return res.status(200).json({ subscribed_topic: getCurrentSubscribeTopic() });

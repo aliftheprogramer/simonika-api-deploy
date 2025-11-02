@@ -1,10 +1,13 @@
 // src/pages/api/device/config.js
+import runMiddleware, { cors } from '@/lib/cors';
 import mongoConnect from '@/lib/mongoConnect';
 import Device from '@/models/Device';
 
 // Device config retrieval. Devices call this with JSON body { deviceId, token }
 // Returns assigned pool info (if any) and device metadata.
 export default async function handler(req, res) {
+  await runMiddleware(req, res, cors);
+  if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed' });
 
   try {

@@ -5,6 +5,7 @@ import { authenticate } from '@/lib/auth';
 
 export default async function handler(req, res) {
   await runMiddleware(req, res, cors);
+  if (req.method === 'OPTIONS') return res.status(204).end();
 
   if (req.method !== 'POST') return res.status(405).end('Method Not Allowed');
 

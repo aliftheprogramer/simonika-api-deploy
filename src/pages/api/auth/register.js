@@ -1,8 +1,11 @@
 import jwt from 'jsonwebtoken';
+import runMiddleware, { cors } from '@/lib/cors';
 import mongoConnect from '@/lib/mongoConnect';
 import User from '@/models/User';
 
 export default async function handler(req, res) {
+  await runMiddleware(req, res, cors);
+  if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method tidak diizinkan' });
   }
