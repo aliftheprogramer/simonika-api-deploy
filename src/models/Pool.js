@@ -1,4 +1,4 @@
-// @/moodels/Pool.js
+// @/models/Pool.js
 import mongoose from 'mongoose';
 
 const poolSchema = new mongoose.Schema(
@@ -8,6 +8,18 @@ const poolSchema = new mongoose.Schema(
       required: true,
       trim: true,
       unique: true,
+    },
+    // Reference to the assigned device (if any)
+    device: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Device',
+      default: null,
+      index: true,
+    },
+    // Flag to indicate whether the pool is active/integrated with a device
+    activeKolam: {
+      type: Boolean,
+      default: false,
     },
     kedalamanTotal: {
       type: Number,
@@ -35,10 +47,14 @@ const poolSchema = new mongoose.Schema(
   }
 );
 
+// Ensure targetLevelNormal stays within min/max and keep activeKolam
+// in sync with the presence of an assigned device.
 poolSchema.pre('save', function (next) {
   if (this.targetLevelNormal < this.levelMinimum || this.targetLevelNormal > this.levelMaksimum) {
     return next(new Error('targetLevelNormal harus berada di antara levelMinimum dan levelMaksimum'));
   }
+  // Derive active state from whether a device is linked
+  this.activeKolam = !!this.device;
   next();
 });
 
