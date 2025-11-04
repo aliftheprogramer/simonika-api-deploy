@@ -209,6 +209,10 @@ Saat ini endpoint WS tidak mewajibkan autentikasi. Jika API Anda terekspos publi
 - Payload tidak bisa di-parse JSON:
 	- Beberapa device publish angka/string polos. Gunakan payload apa adanya atau convert manual.
 
+- Error ENOENT di Next dev (Turbopack), mis. `pages-manifest.json` atau `_buildManifest.js.tmp`:
+	- Ini bug/ketidakcocokan saat WS + dev bundler tertentu.
+	- Solusi: jalankan dev tanpa Turbopack `npm run dev:webpack`, atau gunakan mode produksi `npm run build && npm start` saat menguji WS.
+
 ---
 
 Dok ini melengkapi `docs/mqtt.md` (history/last/messages). Gunakan history untuk backfill singkat, lalu WS untuk realtime.

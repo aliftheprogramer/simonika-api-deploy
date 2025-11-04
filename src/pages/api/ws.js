@@ -21,19 +21,17 @@ export default function handler(req, res) {
   }
 
   if (!res.socket.server.wss) {
-    // Lazy-init a WS server and attach to the underlying HTTP server
+    // Create a WS server that upgrades only for path `/api/ws`
     const { Server } = require('ws');
-    const wss = new Server({ server: res.socket.server });
+    const wss = new Server({ noServer: true, perMessageDeflate: false });
     res.socket.server.wss = wss;
 
     // Broadcast helper with per-client filtering
     const broadcast = (msg) => {
       wss.clients.forEach((client) => {
         if (client.readyState !== 1) return; // OPEN
-        // If client set a filter (deviceId), only send matching messages
         if (client.filterDeviceId) {
           const did = client.filterDeviceId;
-          // Match based on topic devices/{did}/data or payload JSON deviceId/id
           let match = false;
           const tmatch = msg.topic && msg.topic.match(/^devices\/([^/]+)\/data$/);
           if (tmatch && tmatch[1] === did) match = true;
@@ -52,19 +50,49 @@ export default function handler(req, res) {
     // Subscribe once to MQTT messages and broadcast to clients
     res.socket.server._unsubMqtt = onMqttMessage(broadcast);
 
-    wss.on('connection', (ws, request) => {
-      // Parse deviceId filter from query string
-      try {
-        const url = new URL(request.url, 'http://localhost');
-        const deviceId = url.searchParams.get('deviceId');
-        if (deviceId) ws.filterDeviceId = deviceId;
-      } catch {}
+    // Simple heartbeat to keep connections alive and detect dead sockets
+    wss.on('connection', (ws) => {
+      ws.isAlive = true;
+      ws.on('pong', () => { ws.isAlive = true; });
+    });
+    if (!res.socket.server._wsHeartbeat) {
+      const interval = setInterval(() => {
+        wss.clients.forEach((ws) => {
+          if (ws.isAlive === false) return ws.terminate();
+          ws.isAlive = false;
+          try { ws.ping(); } catch {}
+        });
+      }, 30000);
+      res.socket.server._wsHeartbeat = interval;
+    }
 
-      // Send a hello payload
+    // Handle HTTP -> WS upgrade only for /api/ws (attach once)
+    if (!res.socket.server._wsUpgradeAttached) {
+      res.socket.server.on('upgrade', (request, socket, head) => {
+        try {
+          const url = new URL(request.url, 'http://localhost');
+          if (url.pathname !== '/api/ws') return; // ignore other upgrades
+
+          wss.handleUpgrade(request, socket, head, (ws) => {
+            // Initialize client filter from query
+            const deviceId = url.searchParams.get('deviceId');
+            ws.filterDeviceId = deviceId || null;
+
+            wss.emit('connection', ws, request);
+          });
+        } catch (e) {
+          try { socket.destroy(); } catch {}
+        }
+      });
+      res.socket.server._wsUpgradeAttached = true;
+    }
+
+    // Per-connection behavior
+    wss.on('connection', (ws) => {
       try { ws.send(JSON.stringify({ type: 'hello', ok: true })); } catch {}
+      ws.on('error', () => { /* swallow per-connection errors to avoid crashing */ });
 
       ws.on('message', (buf) => {
-        // Optional: allow client to update filter dynamically via JSON { action: 'filter', deviceId }
         try {
           const data = JSON.parse(buf.toString());
           if (data && data.action === 'filter') {
@@ -73,13 +101,9 @@ export default function handler(req, res) {
           }
         } catch {}
       });
-
-      ws.on('close', () => {
-        // Nothing special per-connection; we keep the global MQTT listener
-      });
     });
   }
 
-  // Immediately end HTTP request; the upgrade is handled by ws server
+  // For normal HTTP request, just acknowledge readiness
   res.status(200).end('WebSocket server is ready');
 }

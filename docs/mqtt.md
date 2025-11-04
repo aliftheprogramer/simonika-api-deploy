@@ -1,5 +1,7 @@
 ## MQTT API
 
+Realtime streaming tersedia via WebSocket — lihat `docs/websocket.md` untuk koneksi `ws://.../api/ws` dan pola backfill+realtime.
+
 Dokumentasi endpoint terkait status & operasi MQTT.
 
 ### GET /api/mqtt/status
