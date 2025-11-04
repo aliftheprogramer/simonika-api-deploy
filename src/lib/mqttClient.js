@@ -2,6 +2,7 @@ import mqtt from 'mqtt';
 
 let mqttClient = null;
 let receivedMessages = [];
+const messageListeners = new Set();
 // current subscription topic (can be changed at runtime via API)
 // let currentSubscribeTopic = process.env.MQTT_SUBSCRIBE_TOPIC || 'devices/+/data';
 let currentSubscribeTopic = 'devices/00e5b570/data';
@@ -56,7 +57,8 @@ export function initializeMqttClient() {
   mqttClient.on('message', (topic, message) => {
     const payload = message.toString();
     console.log(`[MQTT] Message received from ${topic}: ${payload}`);
-    receivedMessages.push({ topic, payload, timestamp: new Date().toISOString() });
+    const record = { topic, payload, timestamp: new Date().toISOString() };
+    receivedMessages.push(record);
     if (receivedMessages.length > 10) receivedMessages.shift();
 
     if (topic.startsWith('devices/') && topic.endsWith('/data')) {
@@ -65,6 +67,15 @@ export function initializeMqttClient() {
         console.log('[MQTT] Parsed device data:', data);
       } catch (e) {
         console.error('[MQTT] Failed to parse JSON:', e);
+      }
+    }
+
+    // Notify listeners (e.g., WebSocket broadcaster)
+    for (const cb of messageListeners) {
+      try {
+        cb(record);
+      } catch (e) {
+        console.warn('[MQTT] listener callback error:', e?.message || e);
       }
     }
   });
@@ -141,4 +152,11 @@ export function getReceivedMessages(filter = {}) {
   }
 
   return msgs;
+}
+
+// Allow other modules (like WebSocket route) to listen for new messages
+export function onMqttMessage(listener) {
+  if (typeof listener !== 'function') return () => {};
+  messageListeners.add(listener);
+  return () => messageListeners.delete(listener);
 }

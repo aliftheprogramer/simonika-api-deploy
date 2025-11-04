@@ -30,7 +30,17 @@ export default async function handler(req, res) {
     }
 
     const messages = getReceivedMessages({ deviceId, limit });
-    return res.status(200).json({ deviceId, limit, messages });
+    const enriched = messages.map((m) => {
+      let parsedPayload = null;
+      try {
+        parsedPayload = JSON.parse(m.payload);
+      } catch (e) {
+        const n = Number(m.payload);
+        parsedPayload = Number.isNaN(n) ? m.payload : n;
+      }
+      return { ...m, parsedPayload };
+    });
+    return res.status(200).json({ deviceId, limit, messages: enriched });
   } catch (err) {
     console.error('GET /api/mqtt/history Error:', err);
     return res.status(500).json({ message: 'Server error', error: err.message });
