@@ -86,6 +86,40 @@ Catatan keamanan: endpoint ini saat ini tidak memaksa autentikasi — jika proje
 ```
 
 Catatan:
+
+---
+
+### GET /api/mqtt/history
+
+- Deskripsi: Mengembalikan riwayat pesan terakhir untuk device tertentu (maksimum 10 pesan).
+- Method: GET
+
+- Query parameters:
+	- deviceId (string) — wajib
+	- limit (integer, opsional) — default 10, dibatasi maksimum 10
+
+- Contoh request:
+
+```
+GET /api/mqtt/history?deviceId=00e5b570
+```
+
+- Response (200) contoh:
+
+```json
+{
+	"deviceId": "00e5b570",
+	"limit": 10,
+	"messages": [
+		{ "topic": "devices/00e5b570/data", "payload": "{\"distance\":123}", "timestamp": 1730793512345 },
+		{ "topic": "devices/00e5b570/data", "payload": "{\"distance\":122}", "timestamp": 1730793509345 }
+	]
+}
+```
+
+Catatan:
+- Data diambil dari buffer in-memory server, sehingga hanya berisi pesan yang diterima sejak server aktif.
+- Gunakan endpoint ini jika Anda butuh lebih dari 1 pesan terakhir (lihat juga `/api/mqtt/last` untuk 1 pesan).
 - Server menyimpan pesan terakhir ke array `receivedMessages` (default buffer kecil, mis. 10 pesan). Setiap item berformat `{ topic, payload, timestamp }` — `payload` bertipe string (payload asli yang diterima dari broker).
 
 Filtering per device (contoh HTTP / Postman):
