@@ -1,5 +1,15 @@
-import "@/styles/globals.css";
+import '@/styles/globals.css';
+import Head from 'next/head';
 
-export default function App({ Component, pageProps }) {
-  return <Component {...pageProps} />;
-}
+const App = ({ Component, pageProps }) => {
+  return (
+    <>
+      <Head>
+        <title>SIMONIKA</title>
+      </Head>
+      <Component {...pageProps} />
+    </>
+  );
+};
+
+export default App;

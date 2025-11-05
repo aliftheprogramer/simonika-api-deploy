@@ -1,101 +1,140 @@
-import { useEffect, useState } from "react";
-import Head from "next/head";
-import Sidebar from "@/components/Sidebar";
+import { useState } from 'react';
+import { Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
-export default function Home() {
-  const [payload, setPayload] = useState(null);
-  const totalDepth = 100; // cm
+const LoginPage = () => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    const fetchData = () => {
-      fetch("/api/mqtt/messages")
-        .then((res) => res.json())
-        .then((data) => {
-          if (Array.isArray(data) && data.length > 0) {
-            const last = data[data.length - 1];
-            setPayload(parseFloat(last.payload));
-          }
-        })
-        .catch((err) => console.error("Gagal fetch MQTT:", err));
-    };
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
 
-    fetchData();
-    const interval = setInterval(fetchData, 1000);
-    return () => clearInterval(interval);
-  }, []);
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username,
+          password,
+        }),
+      });
 
-  const percent = payload !== null ? Math.min(100, Math.round((payload / totalDepth) * 100)) : 0;
-  const status = payload < 30 ? "Rendah" : "Normal";
-  const statusColor = payload < 30 ? "text-red-500" : "text-green-600";
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login gagal');
+      }
+
+      const token = data.token;
+      console.log('Login berhasil!', { token, user: data.user });
+
+      window.location.href = '/dashboard';
+    } catch (error) {
+      if (error.message) {
+        setError(error.message);
+      } else {
+        setError('Terjadi kesalahan koneksi');
+      }
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <>
-      <Head>
-        <title>Smart Farming Dashboard</title>
-      </Head>
-      <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
-        <main className="flex-1 p-6 overflow-y-auto">
-          <h1 className="text-2xl font-semibold mb-6">Dashboard</h1>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-xl shadow flex items-center gap-6">
-              <div className="relative w-32 h-32">
-                <div
-                  className="w-full h-full rounded-full"
-                  style={{
-                    background: `conic-gradient(${
-                      payload < 30 ? "#dc2626" : payload < 70 ? "#facc15" : "#22c55e"
-                    } ${percent}%, #e5e7eb 0)`,
-                  }}
-                >
-                  <div className="w-24 h-24 rounded-full bg-white absolute top-4 left-4 flex flex-col items-center justify-center">
-                    <div className="text-2xl font-bold">{percent}%</div>
-                    <div className="text-sm text-gray-400">Level Air</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex-1">
-                <div className={`text-lg font-semibold ${statusColor}`}>{status}</div>
-                <div className="text-sm text-gray-500">
-                  {payload < 30 ? "Di bawah batas minimum (30.0cm)" : "Level air aman"}
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-4">
-                  <div className="bg-gray-100 rounded-lg p-3 text-center">
-                    <div className="text-xl font-bold">{payload?.toFixed(1)} cm</div>
-                    <div className="text-xs text-gray-500">Ketinggian Saat Ini</div>
-                  </div>
-                  <div className="bg-gray-100 rounded-lg p-3 text-center">
-                    <div className="text-xl font-bold">{totalDepth.toFixed(1)} cm</div>
-                    <div className="text-xs text-gray-500">Kedalaman Total</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-xl shadow">
-              <h2 className="text-lg font-semibold mb-4">Status Kontrol</h2>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <i className="fa-solid fa-faucet-drip text-blue-500" />
-                    <span>Kran Utama</span>
-                  </div>
-                  <span className="text-green-600 font-semibold">TERBUKA</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <i className="fa-solid fa-right-from-bracket text-blue-500" />
-                    <span>Kran Pembuangan</span>
-                  </div>
-                  <span className="text-red-500 font-semibold">TERTUTUP</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </main>
+    <div className="min-h-screen flex items-center justify-center bg-white p-4">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-white/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
       </div>
-    </>
+
+      <div className="w-full max-w-md relative">
+        <div className="bg-white/95 backdrop-blur-lg rounded-3xl p-8 space-y-8">
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-bold text-gray-800">Selamat Datang di SIMONIKA</h1>
+            <p className="text-gray-500">Masuk ke akun Anda untuk melanjutkan</p>
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Username</label>
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Masukkan username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Masukkan password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-12 pr-12 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                  required
+                />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-sm">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                <span className="text-gray-600">Ingat saya</span>
+              </label>
+              <a href="#" className="text-indigo-600 hover:text-indigo-700 font-medium">
+                Lupa password?
+              </a>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleLogin}
+              disabled={isLoading}
+              className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Memproses...
+                </span>
+              ) : (
+                'Masuk'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
-}
+};
+
+export default LoginPage;
